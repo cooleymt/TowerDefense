@@ -2,7 +2,10 @@ var config = {
     type: Phaser.AUTO,
     parent: 'content',
     width: 640,
-    height: 512,   
+    height: 512,  
+    physics:{
+        default: 'arcade'
+    },
     scene: {
         key: 'main',
         preload: preload,
@@ -23,6 +26,7 @@ var map =      [[ 0,-1, 0, 0, 0, 0, 0, 0, 0, 0],
                 [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
                 [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
                 [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0]];
+var BULLET_DAMAGE = 50;
 
 var Enemy = new Phaser.Class({
  
@@ -45,7 +49,17 @@ var Enemy = new Phaser.Class({
             
         // set the x and y of our enemy to the received from the previous step
         this.setPosition(this.follower.vec.x, this.follower.vec.y);
+        this.hp = 100;
             
+    },
+    receiveDamage: function(damage) {
+        this.hp -= damage;           
+        
+        // if hp drops below 0 we deactivate this enemy
+        if(this.hp <= 0) {
+            this.setActive(false);
+            this.setVisible(false);      
+        }
     },
     update: function (time, delta)
     {
@@ -86,7 +100,7 @@ var Turret = new Phaser.Class({
         map[i][j] = 1;            
     },
     fire: function() {
-        var enemy = getEnemy(this.x, this.y, 100);
+        var enemy = getEnemy(this.x, this.y, 200);
         if(enemy) {
             var angle = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);
             addBullet(this.x, this.y, angle);
@@ -177,14 +191,16 @@ function create() {
     // visualize the path
     path.draw(graphics);
     
-    enemies = this.add.group({ classType: Enemy, runChildUpdate: true });
+    //enemies = this.add.group({ classType: Enemy, runChildUpdate: true });
+    enemies = this.physics.add.group({ classType: Enemy, runChildUpdate: true });
     this.nextEnemy = 0;
 
     turrets = this.add.group({ classType: Turret, runChildUpdate: true });
     this.input.on('pointerdown', placeTurret);
 
-    bullets = this.add.group({ classType: Bullet, runChildUpdate: true });
-	
+    //bullets = this.add.group({ classType: Bullet, runChildUpdate: true });
+    bullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
+    this.physics.add.overlap(enemies, bullets, damageEnemy);
 }
  
 function update(time, delta) {
@@ -251,4 +267,16 @@ function getEnemy(x, y, distance) {
             return enemyUnits[i];
     }
     return false;
+}
+
+function damageEnemy(enemy, bullet) {  
+    // only if both enemy and bullet are alive
+    if (enemy.active === true && bullet.active === true) {
+        // we remove the bullet right away
+        bullet.setActive(false);
+        bullet.setVisible(false);    
+        
+        // decrease the enemy hp with BULLET_DAMAGE
+        enemy.receiveDamage(BULLET_DAMAGE);
+    }
 }
