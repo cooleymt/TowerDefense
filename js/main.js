@@ -85,10 +85,19 @@ var Turret = new Phaser.Class({
         this.x = j * 64 + 64/2;
         map[i][j] = 1;            
     },
+    fire: function() {
+        var enemy = getEnemy(this.x, this.y, 100);
+        if(enemy) {
+            var angle = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);
+            addBullet(this.x, this.y, angle);
+            this.angle = (angle + Math.PI/2) * Phaser.Math.RAD_TO_DEG;
+        }
+    },
     update: function (time, delta)
     {
         // time to shoot
-        if(time > this.nextTic) {                
+        if(time > this.nextTic) {
+            this.fire();                
             this.nextTic = time + 1000;
         }
     }
@@ -174,6 +183,7 @@ function create() {
     turrets = this.add.group({ classType: Turret, runChildUpdate: true });
     this.input.on('pointerdown', placeTurret);
 
+    bullets = this.add.group({ classType: Bullet, runChildUpdate: true });
 	
 }
  
@@ -224,4 +234,21 @@ function placeTurret(pointer) {
 
 function canPlaceTurret(i, j) {
     return map[i][j] === 0;
+}
+
+function addBullet(x, y, angle) {
+    var bullet = bullets.get();
+    if (bullet)
+    {
+        bullet.fire(x, y, angle);
+    }
+}
+
+function getEnemy(x, y, distance) {
+    var enemyUnits = enemies.getChildren();
+    for(var i = 0; i < enemyUnits.length; i++) {       
+        if(enemyUnits[i].active && Phaser.Math.Distance.Between(x, y, enemyUnits[i].x, enemyUnits[i].y) <= distance)
+            return enemyUnits[i];
+    }
+    return false;
 }
