@@ -15,6 +15,14 @@ var game = new Phaser.Game(config);
 var graphics;
 var path;
 var ENEMY_SPEED = 1/10000;
+var map =      [[ 0,-1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [ 0,-1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [ 0,-1,-1,-1,-1,-1,-1,-1, 0, 0],
+                [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
+                [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
+                [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
+                [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
+                [ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0]];
 
 var Enemy = new Phaser.Class({
  
@@ -59,6 +67,32 @@ var Enemy = new Phaser.Class({
     }
 
 });
+
+var Turret = new Phaser.Class({
+ 
+    Extends: Phaser.GameObjects.Image,
+
+    initialize:
+
+    function Turret (scene)
+    {
+        Phaser.GameObjects.Image.call(this, scene, 0, 0, 'sprites', 'turret');
+        this.nextTic = 0;
+    },
+    // we will place the turret according to the grid
+    place: function(i, j) {            
+        this.y = i * 64 + 64/2;
+        this.x = j * 64 + 64/2;
+        map[i][j] = 1;            
+    },
+    update: function (time, delta)
+    {
+        // time to shoot
+        if(time > this.nextTic) {                
+            this.nextTic = time + 1000;
+        }
+    }
+});
  
 function preload() {
     // load the game assets – enemy and turret atlas
@@ -85,7 +119,12 @@ function create() {
     path.draw(graphics);
     
     enemies = this.add.group({ classType: Enemy, runChildUpdate: true });
-	this.nextEnemy = 0;
+    this.nextEnemy = 0;
+
+    turrets = this.add.group({ classType: Turret, runChildUpdate: true });
+    this.input.on('pointerdown', placeTurret);
+
+	
 }
  
 function update(time, delta) {
@@ -117,4 +156,22 @@ function drawGrid(graphics) {
         graphics.lineTo(j * 64, 512);
     }
     graphics.strokePath();
+}
+
+function placeTurret(pointer) {
+    var i = Math.floor(pointer.y/64);
+    var j = Math.floor(pointer.x/64);
+    if(canPlaceTurret(i, j)) {
+        var turret = turrets.get();
+        if (turret)
+        {
+            turret.setActive(true);
+            turret.setVisible(true);
+            turret.place(i, j);
+        }   
+    }
+}
+
+function canPlaceTurret(i, j) {
+    return map[i][j] === 0;
 }
